@@ -4,19 +4,19 @@ metadata:
   name: test
   namespace: default
 spec:
-  environmentVariables: |-
-    - key: "API_URL"
-      value: "https://api.example.com"
+  environmentVariables:
+    - key: API_URL
+      masked: false
       protected: true
-      masked: true
-    - key: "DEBUG"
+      value: https://api.example.com
+    - key: DEBUG
+      masked: false
+      protected: false
       value: "true"
-      protected: false
+    - key: LOG_LEVEL
       masked: false
-    - key: "LOG_LEVEL"
-      value: "info"
       protected: false
-      masked: false
+      value: info
   projectDescription: A short description that changed
   projectName: test-repo-2
   teamName: test-team
