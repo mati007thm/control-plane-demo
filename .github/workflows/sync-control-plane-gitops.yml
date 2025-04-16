@@ -66,16 +66,15 @@ jobs:
           runId: ${{inputs.runId}} 
           icon: GithubActions
           logMessage: "Creating a PR with the changes of the new resource in folder ${{ inputs.folder }} 🚀"
-      - name: create pr 
+      - name: push
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "GitHub Action"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "chore: ${{ inputs.operation }} resource by ${{ inputs.triggeringUser }}"
-          git push origin runs/${{inputs.runId}}
-          gh pr create --title "chore: ${{ inputs.operation }} resource" --body "This PR was created by the workflow triggered by ${{inputs.triggeringUser}}" --base main --head runs/${{inputs.runId}}
+          git push
       - uses: port-labs/port-github-action@v1
         if: success()
         with:
@@ -84,7 +83,7 @@ jobs:
           operation: PATCH_RUN
           runId: ${{inputs.runId}} 
           icon: GithubActions
-          logMessage: "Created a new PR succesfully ✅"
+          logMessage: "Pushed succesfully ✅"
       - uses: port-labs/port-github-action@v1
         if: failure()
         with:
@@ -94,7 +93,7 @@ jobs:
           runId: ${{inputs.runId}} 
           icon: GithubActions
           logMessage: | 
-            Failed to create a new PR ❌
+            Failed to push ❌
             Check the job run logs in Github to learn more 📜:
               ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           
