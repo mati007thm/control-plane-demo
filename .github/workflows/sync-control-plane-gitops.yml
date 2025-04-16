@@ -2,6 +2,7 @@ name: Sync control plane gitops
 permissions:
   contents: write
   pull-requests: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -33,7 +34,9 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v2
-      - uses: port-labs/port-github-action@v1
+
+      - name: Log in Port: Creating branch
+        uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
@@ -41,24 +44,29 @@ jobs:
           runId: ${{inputs.runId}} 
           icon: GithubActions
           logMessage: "Creating branch with name runs/${{inputs.runId}} 🏃🏻‍♂️"
+
       - name: create-branch
         run: |
           git checkout -b runs/${{inputs.runId}}
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10' 
+
       - name: Update manifests folder
         run: |
-            echo '${{ inputs.manifest }}' | jq .  > temp.json
-            yaml_data=$(yq -p json -o yaml temp.json)
-            name=$(echo '${{ inputs.manifest }}' | jq .metadata.name)
-            if [ "${{ inputs.operation }}" = "DELETE" ]; then
-              rm -f "${{ inputs.folder }}/$name".yaml
-            else
-              echo "$yaml_data" > "${{ inputs.folder }}/$name".yaml
-            fi
-            rm -f temp.json
-      - uses: port-labs/port-github-action@v1
+          echo '${{ inputs.manifest }}' | jq .  > temp.json
+          yaml_data=$(yq -p json -o yaml temp.json)
+          name=$(echo '${{ inputs.manifest }}' | jq -r .metadata.name)
+          if [ "${{ inputs.operation }}" = "DELETE" ]; then
+            rm -f "${{ inputs.folder }}/$name.yaml"
+          else
+            echo "$yaml_data" > "${{ inputs.folder }}/$name.yaml"
+          fi
+          rm -f temp.json
+
+      - name: Log in Port: Creating PR
+        uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
@@ -66,27 +74,55 @@ jobs:
           runId: ${{inputs.runId}} 
           icon: GithubActions
           logMessage: "Creating a PR with the changes of the new resource in folder ${{ inputs.folder }} 🚀"
+
       - name: create pr 
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config user.name "GitHub Action"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "chore: ${{ inputs.operation }} resource by ${{ inputs.triggeringUser }}"
           git push origin runs/${{inputs.runId}}
-          gh pr create --title "chore: ${{ inputs.operation }} resource" --body "This PR was created by the workflow triggered by ${{inputs.triggeringUser}}" --base main --head runs/${{inputs.runId}}
-      - uses: port-labs/port-github-action@v1
+
+          gh auth setup-git
+          gh pr create \
+            --title "chore: ${{ inputs.operation }} resource" \
+            --body "This PR was created by the workflow triggered by ${{inputs.triggeringUser}}" \
+            --base main \
+            --head runs/${{inputs.runId}}
+
+      - name: merge pr
         if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "Attempting to merge PR for branch runs/${{inputs.runId}}..."
+          for i in {1..5}; do
+            gh pr view runs/${{inputs.runId}} && break
+            echo "Waiting for PR to become available..."
+            sleep 2
+          done
+
+          if ! gh pr merge runs/${{inputs.runId}} --merge --admin --delete-branch; then
+            echo "❌ Merge failed"
+            exit 1
+          fi
+
+      - name: Log success to Port
+        if: success()
+        uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: PATCH_RUN
           runId: ${{inputs.runId}} 
           icon: GithubActions
-          logMessage: "Created a new PR succesfully ✅"
-      - uses: port-labs/port-github-action@v1
+          logMessage: "✅ Created and merged a new PR successfully"
+
+      - name: Log failure to Port
         if: failure()
+        uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
@@ -94,7 +130,6 @@ jobs:
           runId: ${{inputs.runId}} 
           icon: GithubActions
           logMessage: | 
-            Failed to create a new PR ❌
+            ❌ Failed to create or merge the PR
             Check the job run logs in Github to learn more 📜:
               ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
