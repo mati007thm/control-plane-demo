@@ -77,7 +77,7 @@ jobs:
 
       - name: create pr 
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "GitHub Action"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -95,7 +95,7 @@ jobs:
       - name: merge pr
         if: success()
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Attempting to merge PR for branch runs/${{inputs.runId}}..."
           for i in {1..5}; do
