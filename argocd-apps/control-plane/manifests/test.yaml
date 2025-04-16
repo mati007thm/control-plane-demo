@@ -4,6 +4,9 @@ metadata:
   name: test
   namespace: default
 spec:
+  compositionSelector:
+    matchLabels:
+      type: dynamic
   environmentVariables:
     - key: API_URL
       masked: false
