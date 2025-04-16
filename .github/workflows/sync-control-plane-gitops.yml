@@ -35,8 +35,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
-      - name: Log in Port: Creating branch
-        uses: port-labs/port-github-action@v1
+      - uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
