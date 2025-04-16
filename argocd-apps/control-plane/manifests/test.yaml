@@ -4,23 +4,20 @@ metadata:
   name: test
   namespace: default
 spec:
-  compositionSelector:
-    matchLabels:
-      type: dynamic
-  environmentVariables:
-    - key: API_URL
-      masked: false
+  environmentVariables: |-
+    - key: "API_URL"
+      value: "https://api.example.com"
       protected: true
-      value: https://api.example.com
-    - key: DEBUG
-      masked: false
-      protected: false
+      masked: true
+    - key: "DEBUG"
       value: "true"
-    - key: LOG_LEVEL
-      masked: false
       protected: false
-      value: info
-  projectDescription: A short description
-  projectName: test-repo
+      masked: false
+    - key: "LOG_LEVEL"
+      value: "info"
+      protected: false
+      masked: false
+  projectDescription: A short description that changed
+  projectName: test-repo-2
   teamName: test-team
   visibilityLevel: internal
